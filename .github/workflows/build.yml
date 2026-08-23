@@ -1,0 +1,46 @@
+name: Build Proxy SHOP DHP IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode
+        run: xcodebuild -version
+
+      - name: Build
+        run: |
+          xcodebuild \
+            -project ProxyShopDHP.xcodeproj \
+            -scheme ProxyShopDHP \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$GITHUB_WORKSPACE/build/ProxyShopDHP.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            archive
+
+      - name: Create IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R \
+            build/ProxyShopDHP.xcarchive/Products/Applications/ProxyShopDHP.app \
+            build/Payload/
+          cd build
+          zip -r ProxyShopDHP-unsigned.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProxyShopDHP-unsigned-ipa
+          path: build/ProxyShopDHP-unsigned.ipa
